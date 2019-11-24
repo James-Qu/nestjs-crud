@@ -19,41 +19,46 @@ export class ProductService {
     return prod.id;
   }
 
-  getAllProducts() {
-    return [...this.products];
+  async getAllProducts() {
+    // Model.find() returns a Query.
+    const products = await this.productModel.find().exec();
+    return products as Product[];
   }
 
-  getSingleProduct(productId: string) {
-    const product = this.findProduct(productId)[0];
-    return {...product};
+  async getSingleProduct(productId: string) {
+    const product = await this.findProduct(productId);
+    return product;
   }
 
-  updateProduct(productId: string, title: string, desc: string, price: number) {
-    const [product, index] = this.findProduct(productId);
-    const updatedProduct = {...product};
+  async updateProduct(productId: string, title: string, desc: string, price: number) {
+    const product = await this.findProduct(productId);
     if (title) {
-      updatedProduct.title = title;
+      product.title = title;
     }
     if (desc) {
-      updatedProduct.description = desc;
+      product.description = desc;
     }
     if (price) {
-      updatedProduct.price = price;
+      product.price = price;
     }
-    this.products[index] = updatedProduct;
+    product.save();
   }
 
-  private findProduct(id: string): [Product, number] {
-    const productIndex = this.products.findIndex(prod => prod.id === id);
-    const product = this.products.find((prod) => prod.id === id);
+  private async findProduct(id: string) {
+    let product: Product;
+    try {
+      product = await this.productModel.findById(id);
+    } catch (error) {
+      throw new NotFoundException('Could not find the product!');
+    }
     if (!product ) {
       throw new NotFoundException('Could not find the product!');
     }
-    return [product, productIndex];
+    return product as Product;
   }
 
-  deleteProduct(prodId: string) {
-    const [product, index] = this.findProduct(prodId);
-    this.products.splice(index, 1);
+  async deleteProduct(prodId: string) {
+    this.productModel.deleteOne({_id: prodId}).exec();
+    return 'deleted!';
   }
 }
